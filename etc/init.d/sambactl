@@ -1,0 +1,48 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:    samba
+# Required-Start:
+# Required-Stop:
+# Short-Description: samba 
+# Description: samba server
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+PIDDIR=/run/samba
+NMBDPID=$PIDDIR/nmbd.pid
+SMBDPID=$PIDDIR/smbd.pid
+WINBINDDPID=$PIDDIR/winbindd.pid
+
+test -x $PROGRAM || exit 0
+
+case "$1" in
+	start)
+		start-stop-daemon --start --quiet --oknodo --exec /usr/sbin/nmbd -- -D
+		start-stop-daemon --start --quiet --oknodo --exec /usr/sbin/smbd -- -D
+		start-stop-daemon --start --quiet --oknodo --exec /usr/sbin/winbindd -- -D
+		;;
+	stop)
+		start-stop-daemon --stop --quiet --pidfile $WINBINDDPID
+		start-stop-daemon --stop --quiet --pidfile $SMBDPID
+		start-stop-daemon --stop --quiet --pidfile $NMBDPID
+		;;
+	restart)
+		$0 stop
+		sleep 1
+		$0 start
+		;;
+	reload)
+		start-stop-daemon --stop --quiet --signal HUP --pidfile $SMBDPID
+		;;
+	status)
+		status_of_proc -p $NMBDPID /usr/sbin/nmbd nmbd
+		status_of_proc -p $SMBDPID /usr/sbin/smbd smbd
+		;;
+	*)
+		echo "usage:sambactl {start | stop | restart | reload | status}\n"
+		exit 1
+esac
+
+exit 0
