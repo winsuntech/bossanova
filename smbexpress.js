@@ -6,20 +6,20 @@ var fs = require('fs');
 const spawn = require('child_process').spawn;
 
 var app = express();
-var rbody = {};  //receive req body 
+var userShareInfo = {};  //receive req body 
 
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({ extended: true }));
 
 
 app.get('/config',(req,res) => {
-    return res.status(200).send(rbody);
+    return res.status(200).send(userShareInfo);
 });
 
 app.post('/config', (req,res) => {
-    rbody = req.body;
-    var rusers = rbody.users;
-    var rshares = rbody.shares;
+    userShareInfo = req.body;
+    var rusers = userShareInfo.users;
+    var rshares = userShareInfo.shares;
 
     //check for format
     for(var i=0; i<rusers.length;i++){
@@ -40,7 +40,32 @@ app.post('/config', (req,res) => {
         }
     }
 
-    
+    //add user
+    for(i=0; i<rusers.length; i++){
+        var cmd = 'useradd';
+        var args = [rusers[i].username];
+        var adduserlinux = spawn(cmd,args);
+        adduserlinux.on('close', (code) => {
+            if(code == 0){
+                var args1 = rusers[i].password+'\n'+rusers[i].password;
+                var args2 = rusers[i].username;
+                console.log('args:',args);
+                const echo = spawn('echo', ['-e',args1]);
+                const chpasswd = spawn('smbpasswd',['-a',args2]);
+                echo.stdout.on('data', (data) => {
+                    chpasswd.stdin.write(data);
+                });
+                echo.on('close', (code) => {
+                    chpasswd.stdin.end();
+                });
+            }
+        });
+    }
+
+    //create /etc/samba/smb.conf
+    for(i=0; i<rshares.length; i++){
+
+    }
     return res.status(200).send('hello,expre');
 });
 
@@ -51,19 +76,14 @@ app.post('/config', (req,res) => {
 */
 app.get('/status', (req,res) => {
     getSambaStatus((status) => {
-        console.log('status:',status);
-        if(status === true){
-            return res.status(200).send('running');
-        } else if(status === false){
-            return res.status(200).send('not running');
-        } else {
-            return res.status(500).send('Error');
-        }
+        // console.log('status:',status);
+        return res.status(200).send(status);
+        
     });
 });
 
 app.get('/test',(req,res) => {
-    console.log(rbody);
+    console.log(userShareInfo);
     return res.send('hotwind');
 });
 
@@ -81,13 +101,13 @@ function getSambaStatus(cb){
     status.on('close', (code) => {
         if(code == 0){
             // console.log('result:',result);
-            var validRegEx = /[^not]/;
-            var status = validRegEx.test(result);
-            cb(status);             
-        } else {
-            db('Error');
+            var status = result.indexOf('not');
+            if(status === -1){
+                cb(true);
+            } else {
+                cb(false);
+            }
         }
-  
     });
 }
 
