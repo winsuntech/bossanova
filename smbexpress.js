@@ -4,6 +4,8 @@ var multer =  require('multer');
 var upload = multer();
 var fs = require('fs');
 const spawn = require('child_process').spawn;
+const spawnSync = require('child_process').spawnSync;
+const execSync = require('child_process').execSync;
 
 var app = express();
 var userShareInfo = {};  //receive req body 
@@ -23,7 +25,7 @@ app.post('/config', (req,res) => {
 
     //check for format
     for(var i=0; i<rusers.length;i++){
-        console.log(rusers[i].uuid);
+        console.log('users.uuid',rusers[i].uuid);
         if (!validString(rusers[i].username) || !validUuid(rusers[i].uuid)){
             return res.status(400).send('username or uuid Format Error');
         }
@@ -43,29 +45,89 @@ app.post('/config', (req,res) => {
     //add user
     for(i=0; i<rusers.length; i++){
         var cmd = 'useradd';
-        var args = [rusers[i].username];
-        var adduserlinux = spawn(cmd,args);
-        adduserlinux.on('close', (code) => {
-            if(code == 0){
-                var args1 = rusers[i].password+'\n'+rusers[i].password;
-                var args2 = rusers[i].username;
-                console.log('args:',args);
-                const echo = spawn('echo', ['-e',args1]);
-                const chpasswd = spawn('smbpasswd',['-a',args2]);
-                echo.stdout.on('data', (data) => {
-                    chpasswd.stdin.write(data);
-                });
-                echo.on('close', (code) => {
-                    chpasswd.stdin.end();
-                });
-            }
-        });
+        var args = rusers[i].username;
+        var adduserlinux = spawnSync(cmd,[args]);
+        // console.log('args:',args);
+        if(adduserlinux.status == 0){
+            var args1 = rusers[i].password+'\n'+rusers[i].password;
+            var args2 = rusers[i].username;
+            // console.log('args1:',args1);
+            // console.log('args2:',args2);
+
+            var s = spawnSync('pdbedit',['-a', args2],{input:args1});
+            console.log('0:s:',s.status);
+
+            // const echo = spawn('echo', ['-e',args1]);
+            // console.log(1);
+            // const chpasswd = spawn('pdbedit',['-a',args2]);
+            // console.log(2);
+            // echo.stdout.on('data', (data) => {
+            //     console.log(3);
+            //     chpasswd.stdin.write(data);
+            // });
+            // echo.on('close', (code) => {
+            //     console.log(4);
+            //     chpasswd.stdin.end();
+            // });
+            // chpasswd.on('close', (code) => {
+            //     console.log(5);
+            //     console.log('chpasswd.code:',code);
+            // });
+        } else if(adduserlinux.status == 9) {
+            var s = spawnSync('pdbedit',['-a', args2],{input:args1});
+            console.log('9:s:',s.status);
+        } else {
+            console.log('other!');
+        }
     }
+
+    var smbglobal = "[global]\n \
+    workgroup = WORKGROUP\n \
+    netbios name = LEWIS\n \
+    object = my_notify\n \
+    server string = %h server (Samba, Ubuntu)\n \
+    dns proxy = no\n \
+    log file = /var/log/samba/log.%m\n \
+    max log size = 1000\n \
+    syslog = 0\n \
+    panic action = /usr/share/samba/panic-action %d\n \
+    server role = standalone server\n \
+    passdb backend = tdbsam\n \
+    obey pam restrictions = yes\n \
+    unix password sync = yes\n \
+    passwd program = /usr/bin/passwd %u\n \
+    passwd chat = *Enter\\snew\\s*\\spassword:* %n\\n *Retype\\snew\\s*\\spassword:* %n\\n *password\\supdated\\ssuccessfully* .\n \
+    pam password change = yes \n \
+    map to guest = never\n \
+    security = user\n \
+    guest account = nobody\n \
+    browseable = yes\n\
+[homes]\n \
+    comment = Home Directory\n \
+    browseable = no\n \
+    read only = no\n \
+    create mask = 0775\n \
+    directory mask = 0775\n \
+    valid users = %S\n";
 
     //create /etc/samba/smb.conf
     for(i=0; i<rshares.length; i++){
-
+        var data = '['+rshares[i].name+']\n';
+        data += '    path = '+rshares[i].directory+'\n';
+        data += '    available = yes\n    force user = admin\n\n';
+        data += '    write list = '+getusernamefromuuid(rusers,rshares[i].writelist)+'\n';
+        data += '    read list = '+getusernamefromuuid(rusers,rshares[i].readlist)+'\n';
+        // var data = getusernamefromuuid(rusers,rshares[i].readlist);
+        // console.log('data:',data);
+        smbglobal += data;
     }
+    // console.log(smbglobal);
+    fs.writeFile('/etc/samba/smb.conf', smbglobal, (error) => {
+        if(error){
+            throw error;
+        }
+        console.log('write successfully');
+    })
     return res.status(200).send('hello,expre');
 });
 
@@ -121,4 +183,21 @@ function validString(input){
 function validUuid(input){
     var validRegEx = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
     return validRegEx.test(input);
+}
+
+//get username from user uuid
+function getusernamefromuuid(alluser,namelist){
+    var j = 0;
+    var newlist = namelist.map((element) => {
+        for(j=0; j<alluser.length; j++){
+            // console.log('j:',j,':',alluser.length);
+            // console.log('uuid:',alluser[j].uuid);
+            // console.log('username:',alluser[j].username);
+            if(element == alluser[j].uuid){
+                return alluser[j].username;
+            }
+        }
+    });
+    // console.log('newlist:',newlist);
+    return newlist.join(',');
 }
