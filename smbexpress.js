@@ -20,6 +20,120 @@ app.get('/config',(req,res) => {
 
 app.post('/config', (req,res) => {
     userShareInfo = req.body;
+    getSambaStatus((status) => {
+        if(status == true){
+            console.log('process running!');
+            if(Object.keys(userShareInfo).length){
+                console.log('not empty');
+                configsmb(userShareInfo);
+                var s = spawnSync('/etc/init.d/sambactl',['restart']);
+                if(s.status === 0){
+                    return res.status(200).send('restart ok!');
+                } else {
+                    return res.status(200).send('restart failed!');
+                }
+            } else {
+                console.log('empty');
+                var s = spawnSync('/etc/init.d/sambactl',['stop']);
+                if(s.status === 0){
+                    return res.status(200).send('stop ok!');
+                } else {
+                    return res.status(200).send('stop failed!');
+                }
+            }
+        } else {
+            console.log('process not running!');
+            if(Object.keys(userShareInfo).length){
+                console.log('not empty');
+                configsmb(userShareInfo);
+                var s = spawnSync('/etc/init.d/sambactl',['start']);
+                if(s.status === 0){
+                    return res.status(200).send('start ok!');
+                } else {
+                    return res.status(200).send('start failed!');
+                }
+            } else {
+                console.log('empty');
+                return res.status(200).send('do nothing');
+            }
+        }
+    });
+
+    // return res.status(200).send('hello,expre');
+});
+
+/*
+ * if samba is running, return running
+ * if samba is stoped ,return not running
+ * if system error, return Error
+*/
+app.get('/status', (req,res) => {
+    getSambaStatus((status) => {
+        // console.log('status:',status);
+        return res.status(200).send(status);
+        
+    });
+});
+
+app.get('/test',(req,res) => {
+    console.log(userShareInfo);
+    return res.send('hotwind');
+});
+
+app.listen(3005);
+
+console.log('server address is localhost:3005');
+
+//get samba status
+function getSambaStatus(cb){
+    var result='';
+    status = spawn('/etc/init.d/sambactl', ['status']);
+    status.stdout.on('data', (data) => {
+        result += data.toString();
+    });
+    status.on('close', (code) => {
+        if(code == 0){
+            // console.log('result:',result);
+            var status = result.indexOf('not');
+            if(status === -1){
+                cb(true);
+            } else {
+                cb(false);
+            }
+        }
+    });
+}
+
+//check for string such as username path sharepath
+function validString(input){
+    var validRegEx = /^[a-z][a-z0-9]{3,31}$/;
+    return validRegEx.test(input);
+}
+
+//check for uuid
+function validUuid(input){
+    var validRegEx = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+    return validRegEx.test(input);
+}
+
+//get username from user uuid
+function getusernamefromuuid(alluser,namelist){
+    var j = 0;
+    var newlist = namelist.map((element) => {
+        for(j=0; j<alluser.length; j++){
+            // console.log('j:',j,':',alluser.length);
+            // console.log('uuid:',alluser[j].uuid);
+            // console.log('username:',alluser[j].username);
+            if(element == alluser[j].uuid){
+                return alluser[j].username;
+            }
+        }
+    });
+    // console.log('newlist:',newlist);
+    return newlist.join(',');
+}
+
+function configsmb(userShareInfo){
     var rusers = userShareInfo.users;
     var rshares = userShareInfo.shares;
 
@@ -127,77 +241,5 @@ app.post('/config', (req,res) => {
             throw error;
         }
         console.log('write successfully');
-    })
-    return res.status(200).send('hello,expre');
-});
-
-/*
- * if samba is running, return running
- * if samba is stoped ,return not running
- * if system error, return Error
-*/
-app.get('/status', (req,res) => {
-    getSambaStatus((status) => {
-        // console.log('status:',status);
-        return res.status(200).send(status);
-        
     });
-});
-
-app.get('/test',(req,res) => {
-    console.log(userShareInfo);
-    return res.send('hotwind');
-});
-
-app.listen(3005);
-
-console.log('server address is localhost:3005');
-
-//get samba status
-function getSambaStatus(cb){
-    var result='';
-    status = spawn('/etc/init.d/sambactl', ['status']);
-    status.stdout.on('data', (data) => {
-        result += data.toString();
-    });
-    status.on('close', (code) => {
-        if(code == 0){
-            // console.log('result:',result);
-            var status = result.indexOf('not');
-            if(status === -1){
-                cb(true);
-            } else {
-                cb(false);
-            }
-        }
-    });
-}
-
-//check for string such as username path sharepath
-function validString(input){
-    var validRegEx = /^[a-z][a-z0-9]{3,31}$/;
-    return validRegEx.test(input);
-}
-
-//check for uuid
-function validUuid(input){
-    var validRegEx = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-    return validRegEx.test(input);
-}
-
-//get username from user uuid
-function getusernamefromuuid(alluser,namelist){
-    var j = 0;
-    var newlist = namelist.map((element) => {
-        for(j=0; j<alluser.length; j++){
-            // console.log('j:',j,':',alluser.length);
-            // console.log('uuid:',alluser[j].uuid);
-            // console.log('username:',alluser[j].username);
-            if(element == alluser[j].uuid){
-                return alluser[j].username;
-            }
-        }
-    });
-    // console.log('newlist:',newlist);
-    return newlist.join(',');
 }
