@@ -243,3 +243,5 @@ function configsmb(userShareInfo){
         console.log('write successfully');
     });
 }
+
+module.exports = app;
