@@ -24,7 +24,7 @@ app.post('/config', (req,res) => {
         if(status == true){
             console.log('process running!');
             if(Object.keys(userShareInfo).length){
-                console.log('not empty');
+                // console.log('not empty');
                 configsmb(userShareInfo);
                 var s = spawnSync('/etc/init.d/sambactl',['restart']);
                 if(s.status === 0){
@@ -33,7 +33,7 @@ app.post('/config', (req,res) => {
                     return res.status(200).send('restart failed!');
                 }
             } else {
-                console.log('empty');
+                // console.log('empty');
                 var s = spawnSync('/etc/init.d/sambactl',['stop']);
                 if(s.status === 0){
                     return res.status(200).send('stop ok!');
@@ -44,7 +44,7 @@ app.post('/config', (req,res) => {
         } else {
             console.log('process not running!');
             if(Object.keys(userShareInfo).length){
-                console.log('not empty');
+                // console.log('not empty');
                 configsmb(userShareInfo);
                 var s = spawnSync('/etc/init.d/sambactl',['start']);
                 if(s.status === 0){
@@ -53,7 +53,7 @@ app.post('/config', (req,res) => {
                     return res.status(200).send('start failed!');
                 }
             } else {
-                console.log('empty');
+                // console.log('empty');
                 return res.status(200).send('do nothing');
             }
         }
@@ -139,7 +139,6 @@ function configsmb(userShareInfo){
 
     //check for format
     for(var i=0; i<rusers.length;i++){
-        console.log('users.uuid',rusers[i].uuid);
         if (!validString(rusers[i].username) || !validUuid(rusers[i].uuid)){
             return res.status(400).send('username or uuid Format Error');
         }
@@ -147,7 +146,6 @@ function configsmb(userShareInfo){
 
     //check for share info
     for(i=0; i<rshares.length; i++){
-        console.log(rshares[i].name);
         if(!validString(rshares[i].name)){
             return res.status(400).send('name Format Error');
         }
@@ -169,7 +167,6 @@ function configsmb(userShareInfo){
             // console.log('args2:',args2);
 
             var s = spawnSync('pdbedit',['-a', args2],{input:args1});
-            console.log('0:s:',s.status);
 
             // const echo = spawn('echo', ['-e',args1]);
             // console.log(1);
@@ -189,7 +186,6 @@ function configsmb(userShareInfo){
             // });
         } else if(adduserlinux.status == 9) {
             var s = spawnSync('pdbedit',['-a', args2],{input:args1});
-            console.log('9:s:',s.status);
         } else {
             console.log('other!');
         }
