@@ -1,0 +1,32 @@
+{
+  "name": "bossanova",
+  "version": "1.0.0",
+  "description": "winsun flavored samba, non-persistent design with rest api to manipulate users/shares and socket-based notification.",
+  "main": "client.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winsuntech/bossanova.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/winsuntech/bossanova/issues"
+  },
+  "homepage": "https://github.com/winsuntech/bossanova#readme",
+  "devDependencies": {
+    "body-parser": "^1.15.0",
+    "chai": "^3.5.0",
+    "express": "^4.13.4",
+    "multer": "^1.1.0",
+    "sinon": "^1.17.3",
+    "socket.io": "^1.4.5",
+    "supertest": "^1.2.0"
+  }
+}
