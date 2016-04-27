@@ -160,7 +160,7 @@ function configsmb(userShareInfo){
         var args = rusers[i].username;
         var adduserlinux = spawnSync(cmd,[args]);
         // console.log('args:',args);
-        if(adduserlinux.status == 0){
+        if(adduserlinux.status == 0 || adduserlinux.status == 9){
             var args1 = rusers[i].password+'\n'+rusers[i].password;
             var args2 = rusers[i].username;
             // console.log('args1:',args1);
@@ -184,8 +184,6 @@ function configsmb(userShareInfo){
             //     console.log(5);
             //     console.log('chpasswd.code:',code);
             // });
-        } else if(adduserlinux.status == 9) {
-            var s = spawnSync('pdbedit',['-a', args2],{input:args1});
         } else {
             console.log('other!');
         }
@@ -224,7 +222,7 @@ function configsmb(userShareInfo){
     for(i=0; i<rshares.length; i++){
         var data = '['+rshares[i].name+']\n';
         data += '    path = '+rshares[i].directory+'\n';
-        data += '    available = yes\n    force user = admin\n\n';
+        data += '    available = yes\n';
         data += '    write list = '+getusernamefromuuid(rusers,rshares[i].writelist)+'\n';
         data += '    read list = '+getusernamefromuuid(rusers,rshares[i].readlist)+'\n';
         // var data = getusernamefromuuid(rusers,rshares[i].readlist);
