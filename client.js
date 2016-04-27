@@ -1,8 +1,7 @@
 var io = require('socket.io-client');
 var net = require('net');
 
-// var HOST = '127.0.0.1';
-var HOST = '192.168.5.207';
+var HOST = '127.0.0.1';
 var PORT = 6969;
 
 var receivedata;
