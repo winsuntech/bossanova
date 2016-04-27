@@ -222,7 +222,7 @@ function configsmb(userShareInfo){
     for(i=0; i<rshares.length; i++){
         var data = '['+rshares[i].name+']\n';
         data += '    path = '+rshares[i].directory+'\n';
-        data += '    available = yes\nforce user = admin\n';
+        data += '    available = yes\n';
         data += '    write list = '+getusernamefromuuid(rusers,rshares[i].writelist)+'\n';
         data += '    read list = '+getusernamefromuuid(rusers,rshares[i].readlist)+'\n';
         // var data = getusernamefromuuid(rusers,rshares[i].readlist);
