@@ -230,12 +230,12 @@ function configsmb(userShareInfo){
         smbglobal += data;
     }
     // console.log(smbglobal);
-    fs.writeFile('/etc/samba/smb.conf', smbglobal, (error) => {
-        if(error){
-            throw error;
-        }
-        console.log('write successfully');
-    });
+    var s = fs.writeFileSync('/etc/samba/smb.conf', smbglobal);
+    if(s.status === 0){
+        console.log('write ssuccessfully!');
+    } else {
+        console.log('write failed!');
+    }
 }
 
 module.exports = app;
