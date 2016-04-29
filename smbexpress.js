@@ -159,7 +159,7 @@ function configsmb(userShareInfo, res){
     var smbglobal = "[global]\n \
     workgroup = WORKGROUP\n \
     netbios name = LEWIS\n \
-    object = my_notify\n \
+    vfs object = my_notify\n \
     server string = %h server (Samba, Ubuntu)\n \
     dns proxy = no\n \
     log file = /var/log/samba/log.%m\n \
@@ -209,14 +209,11 @@ function configsmb(userShareInfo, res){
         if(adduserlinux.status == 0 || adduserlinux.status == 9){
             var args1 = rusers[i].password+'\n'+rusers[i].password;
             var args2 = rusers[i].username;
-            console.log('args1:',args1);
-            console.log('args2:',args2);
-            console.log(typeof args1);
-            console.log(typeof args2);
+            // console.log('args1:',args1);
+            // console.log('args2:',args2);
 
             var s = spawnSync('pdbedit',['-a', args2],{input:args1});
             if(s.status != 0) {
-                console.log('spawn');
                 return res.status(400).send('pdbedit error');
             }
 
