@@ -25,8 +25,9 @@ app.post('/config', (req,res) => {
             console.log('process running!');
             if(Object.keys(userShareInfo).length){
                 // console.log('not empty');
-                configsmb(userShareInfo);
+                configsmb(userShareInfo, res);
                 var s = spawnSync('/etc/init.d/sambactl',['restart']);
+                console.log('restart ok!');
                 if(s.status === 0){
                     return res.status(200).send('restart ok!');
                 } else {
@@ -45,7 +46,8 @@ app.post('/config', (req,res) => {
             console.log('process not running!');
             if(Object.keys(userShareInfo).length){
                 // console.log('not empty');
-                configsmb(userShareInfo);
+                configsmb(userShareInfo, res);
+                console.log('start ok!');
                 var s = spawnSync('/etc/init.d/sambactl',['start']);
                 if(s.status === 0){
                     return res.status(200).send('start ok!');
@@ -133,7 +135,7 @@ function getusernamefromuuid(alluser,namelist){
     return newlist.join(',');
 }
 
-function configsmb(userShareInfo){
+function configsmb(userShareInfo, res){
     var rusers = userShareInfo.users;
     var rshares = userShareInfo.shares;
 
@@ -151,41 +153,6 @@ function configsmb(userShareInfo){
         }
         if (!fs.existsSync(rshares[i].directory)){
             return res.status(400).send('directory Format Error');
-        }
-    }
-
-    //add user
-    for(i=0; i<rusers.length; i++){
-        var cmd = 'useradd';
-        var args = rusers[i].username;
-        var adduserlinux = spawnSync(cmd,[args]);
-        // console.log('args:',args);
-        if(adduserlinux.status == 0 || adduserlinux.status == 9){
-            var args1 = rusers[i].password+'\n'+rusers[i].password;
-            var args2 = rusers[i].username;
-            // console.log('args1:',args1);
-            // console.log('args2:',args2);
-
-            var s = spawnSync('pdbedit',['-a', args2],{input:args1});
-
-            // const echo = spawn('echo', ['-e',args1]);
-            // console.log(1);
-            // const chpasswd = spawn('pdbedit',['-a',args2]);
-            // console.log(2);
-            // echo.stdout.on('data', (data) => {
-            //     console.log(3);
-            //     chpasswd.stdin.write(data);
-            // });
-            // echo.on('close', (code) => {
-            //     console.log(4);
-            //     chpasswd.stdin.end();
-            // });
-            // chpasswd.on('close', (code) => {
-            //     console.log(5);
-            //     console.log('chpasswd.code:',code);
-            // });
-        } else {
-            console.log('other!');
         }
     }
 
@@ -233,6 +200,46 @@ function configsmb(userShareInfo){
     fs.writeFileSync('/etc/samba/smb.conf', smbglobal);
     console.log('write ssuccessfully!');
 
+        //add user
+    for(i=0; i<rusers.length; i++){
+        var cmd = 'useradd';
+        var args = rusers[i].username;
+        var adduserlinux = spawnSync(cmd,[args]);
+        // console.log('args:',args);
+        if(adduserlinux.status == 0 || adduserlinux.status == 9){
+            var args1 = rusers[i].password+'\n'+rusers[i].password;
+            var args2 = rusers[i].username;
+            console.log('args1:',args1);
+            console.log('args2:',args2);
+            console.log(typeof args1);
+            console.log(typeof args2);
+
+            var s = spawnSync('pdbedit',['-a', args2],{input:args1});
+            if(s.status != 0) {
+                console.log('spawn');
+                return res.status(400).send('pdbedit error');
+            }
+
+            // const echo = spawn('echo', ['-e',args1]);
+            // console.log(1);
+            // const chpasswd = spawn('pdbedit',['-a',args2]);
+            // console.log(2);
+            // echo.stdout.on('data', (data) => {
+            //     console.log(3);
+            //     chpasswd.stdin.write(data);
+            // });
+            // echo.on('close', (code) => {
+            //     console.log(4);
+            //     chpasswd.stdin.end();
+            // });
+            // chpasswd.on('close', (code) => {
+            //     console.log(5);
+            //     console.log('chpasswd.code:',code);
+            // });
+        } else {
+            console.log('other!');
+        }
+    }
 }
 
 module.exports = app;
